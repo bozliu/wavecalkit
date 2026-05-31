@@ -1,0 +1,34 @@
+.DS_Store
+.omx/
+__pycache__/
+.pytest_cache/
+.mypy_cache/
+.ruff_cache/
+.coverage
+htmlcov/
+build/
+dist/
+*.egg-info/
+.venv/
+venv/
+env/
+outputs/
+
+# Office/editor lock files
+~$*
+**/~$*
+
+# Private or third-party archival source material kept local, not in the public repo.
+*.doc
+*.docx
+*.pdf
+*.xls
+*.xlsx
+*.bmp
+*.jpg
+*.jpeg
+*.png
+*.nc
+*.kml
+*.kmz
+è½¬åï¼è½æºæ¹é¢ æ³¢æµªåæï¼æ©å  è±å½æ©ä¸8æ30å· æ©ä¸9ç¹ddl/
