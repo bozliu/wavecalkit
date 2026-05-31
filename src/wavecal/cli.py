@@ -16,7 +16,9 @@ from wavecal.adapters import (
     write_collocations_csv,
     write_metrics_csv,
 )
+from wavecal.animation import render_workflow_animation
 from wavecal.collocation import collocate, parse_window_specs
+from wavecal.figures import render_scatter_figures
 from wavecal.metrics import compute_metrics_for_pairs
 from wavecal.models import AltimeterRecord, BuoyRecord, CollocationPair
 from wavecal.pipeline import run_pipeline
@@ -65,6 +67,18 @@ def build_parser() -> argparse.ArgumentParser:
     report.add_argument("--collocations", required=True)
     report.add_argument("--out", required=True)
     report.add_argument("--format", choices=["md"], default="md")
+
+    figures = subparsers.add_parser("render-figures", help="Render scatter figures from saved tables.")
+    figures.add_argument("--collocations", required=True)
+    figures.add_argument("--metrics", required=True)
+    figures.add_argument("--out", required=True)
+
+    animate = subparsers.add_parser("animate", help="Render a Python-native workflow animation.")
+    animate.add_argument("--config", required=True)
+    animate.add_argument("--out", required=True)
+    animate.add_argument("--format", choices=["gif", "mp4"])
+    animate.add_argument("--frames", type=int, default=24)
+    animate.add_argument("--fps", type=int, default=8)
 
     audit = subparsers.add_parser("audit-release", help="Check tracked or archived files before public release.")
     audit.add_argument("--root", default=".")
@@ -138,6 +152,25 @@ def main(argv: list[str] | None = None) -> int:
         pairs = _pairs_from_rows(read_collocations_csv(args.collocations))
         render_markdown_report(metrics=metrics, pairs=pairs, figure_paths=[], out_path=args.out)
         print(f"wrote report to {args.out}")
+        return 0
+
+    if args.command == "render-figures":
+        pairs = _pairs_from_rows(read_collocations_csv(args.collocations))
+        metrics = _metrics_from_rows(read_metrics_csv(args.metrics))
+        paths = render_scatter_figures(pairs, metrics, args.out)
+        for path in paths:
+            print(f"figure: {path}")
+        return 0
+
+    if args.command == "animate":
+        path = render_workflow_animation(
+            args.config,
+            args.out,
+            frames=args.frames,
+            fps=args.fps,
+            fmt=args.format,
+        )
+        print(f"animation: {path}")
         return 0
 
     if args.command == "audit-release":

@@ -17,7 +17,7 @@ Given buoy observations and satellite-altimeter SWH records, produce an auditabl
 - Reproducible satellite-vs-buoy SWH validation workflow.
 - Early site-screening and due-diligence support.
 - Transparent correction metrics, uncertainty columns, and provenance.
-- MATLAB-free public toolkit that can be adapted to more sites and missions.
+- Python-native public toolkit that can be adapted to more sites and missions.
 - Screening-level wave-resource indicators when buoy period data is supplied.
 
 ## Unsafe Claims For v1

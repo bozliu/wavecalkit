@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+from dataclasses import dataclass
 from pathlib import Path
 from typing import Any
 
@@ -21,6 +22,16 @@ from wavecal.qc import filter_altimeter, filter_buoy
 from wavecal.reports import render_markdown_report, write_provenance
 
 
+@dataclass(frozen=True)
+class AnalysisResult:
+    config: dict[str, Any]
+    config_path: Path
+    altimeter: list
+    buoy: list
+    pairs: list
+    metrics: list
+
+
 def load_config(path: str | Path) -> dict[str, Any]:
     with Path(path).open(encoding="utf-8") as handle:
         loaded = yaml.safe_load(handle)
@@ -29,17 +40,15 @@ def load_config(path: str | Path) -> dict[str, Any]:
     return loaded
 
 
-def run_pipeline(config_path: str | Path, out_dir: str | Path) -> dict[str, Path]:
+def analyze_config(config_path: str | Path) -> AnalysisResult:
     config_path = Path(config_path)
     config = load_config(config_path)
-    root = Path(out_dir)
-    table_dir = root / "tables"
-    figure_dir = root / "figures"
-    table_dir.mkdir(parents=True, exist_ok=True)
-    figure_dir.mkdir(parents=True, exist_ok=True)
+    config = dict(config)
 
-    altimeter_cfg = config["altimeter"]
-    buoy_cfg = config["buoy"]
+    altimeter_cfg = _resolve_source_config(config_path, config["altimeter"])
+    buoy_cfg = _resolve_source_config(config_path, config["buoy"])
+    config["altimeter"] = altimeter_cfg
+    config["buoy"] = buoy_cfg
     station = config["station"]
     windows = parse_window_specs(config["windows"])
 
@@ -76,15 +85,58 @@ def run_pipeline(config_path: str | Path, out_dir: str | Path) -> dict[str, Path
         aggregation=collocation_cfg.get("aggregation", "nearest"),
     )
     metrics = compute_metrics_for_pairs(pairs, model=config.get("fit", {}).get("model", "linear"))
+    return AnalysisResult(
+        config=config,
+        config_path=config_path,
+        altimeter=altimeter,
+        buoy=buoy,
+        pairs=pairs,
+        metrics=metrics,
+    )
+
+
+def _resolve_source_config(config_path: Path, source_config: dict[str, Any]) -> dict[str, Any]:
+    resolved = dict(source_config)
+    raw_path = resolved.get("path")
+    if raw_path:
+        path = Path(raw_path)
+        if not path.is_absolute():
+            candidates = [
+                Path.cwd() / path,
+                config_path.parent / path,
+                config_path.parent.parent / path,
+            ]
+            for candidate in candidates:
+                if candidate.exists():
+                    resolved["path"] = str(candidate.resolve())
+                    break
+            else:
+                resolved["path"] = str((config_path.parent / path).resolve())
+    return resolved
+
+
+def run_pipeline(config_path: str | Path, out_dir: str | Path) -> dict[str, Path]:
+    config_path = Path(config_path)
+    analysis = analyze_config(config_path)
+    config = analysis.config
+    root = Path(out_dir)
+    table_dir = root / "tables"
+    figure_dir = root / "figures"
+    table_dir.mkdir(parents=True, exist_ok=True)
+    figure_dir.mkdir(parents=True, exist_ok=True)
+
+    altimeter_cfg = config["altimeter"]
+    buoy_cfg = config["buoy"]
+    collocation_cfg = config.get("collocation", {})
 
     collocations_path = table_dir / "collocations.csv"
     metrics_path = table_dir / "metrics.csv"
-    write_collocations_csv(pairs, collocations_path)
-    write_metrics_csv(metrics, metrics_path)
-    figure_paths = render_scatter_figures(pairs, metrics, figure_dir)
+    write_collocations_csv(analysis.pairs, collocations_path)
+    write_metrics_csv(analysis.metrics, metrics_path)
+    figure_paths = render_scatter_figures(analysis.pairs, analysis.metrics, figure_dir)
     report_path = render_markdown_report(
-        metrics=metrics,
-        pairs=pairs,
+        metrics=analysis.metrics,
+        pairs=analysis.pairs,
         figure_paths=figure_paths,
         out_path=root / "report.md",
         title=config.get("report", {}).get("title", "WaveCalKit SWH Validation Report"),
@@ -94,7 +146,7 @@ def run_pipeline(config_path: str | Path, out_dir: str | Path) -> dict[str, Path
         out_path=root / "provenance.json",
         config_path=config_path,
         inputs={"altimeter": altimeter_cfg["path"], "buoy": buoy_cfg["path"]},
-        metrics=metrics,
+        metrics=analysis.metrics,
         notes=[
             "Public sample data is sanitized and not a commercial validation dataset.",
             "Distance windows use haversine distance.",

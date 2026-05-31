@@ -13,6 +13,7 @@ dist/
 venv/
 env/
 outputs/
+*_animated.py
 
 # Local durable task memory. Keep these files in the working tree for agent
 # continuity, but never publish them as part of the public package.

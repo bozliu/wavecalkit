@@ -149,10 +149,10 @@ def read_legacy_txt(
     mission: str = "Jason-3",
     window_name: str | None = None,
 ) -> list[AltimeterRecord]:
-    """Read legacy MATLAB parameter TXT files with stale 15-column headers.
+    """Read historical four-column TXT files with stale 15-column headers.
 
-    The active MATLAB code wrote four columns despite declaring a 15-column
-    header: `swh_ku`, `swh_rms_ku`, `swh_numval_ku`, and `time`.
+    The historical export wrote four values despite declaring a wider header:
+    `swh_ku`, `swh_rms_ku`, `swh_numval_ku`, and `time`.
     """
     records: list[AltimeterRecord] = []
     source = Path(path)
