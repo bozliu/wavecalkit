@@ -1,0 +1,31 @@
+project:
+  name: Scilly Jason-3 SWH validation
+station:
+  id: sw-isles-of-scilly-wavenet
+  name: SW Isle of Scilly Waverider
+  lat: 49.816667
+  lon: -6.545167
+altimeter:
+  source: csv
+  path: examples/data/scilly_altimeter_sample.csv
+buoy:
+  source: csv
+  path: examples/data/scilly_buoy_sample.csv
+windows:
+  - 0-25
+  - 25-50
+  - 50-75
+  - 75-100
+collocation:
+  time_window: exact
+quality:
+  min_swh_numval: 17
+  min_swh_m: 0
+  max_swh_m: 15
+fit:
+  model: linear
+report:
+  title: Scilly Jason-3 Significant Wave Height Validation
+data_sources:
+  - Sanitized sample derived from the Exeter thesis workflow structure, not raw commercial validation data.
+  - Modern target adapters are documented for Copernicus Marine L3 SWH, Cefas WaveNet, and NOAA NDBC.

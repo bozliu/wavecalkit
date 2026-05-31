@@ -1,0 +1,49 @@
+[build-system]
+requires = ["setuptools>=68"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "wavecalkit"
+version = "0.1.0"
+description = "Satellite altimeter versus buoy significant wave-height validation toolkit with reproducible analyst reports."
+readme = "README.md"
+requires-python = ">=3.11"
+license = { text = "MIT" }
+authors = [
+  { name = "WaveCalKit contributors" }
+]
+keywords = [
+  "satellite-altimetry",
+  "wave-height",
+  "metocean",
+  "wave-resource-assessment",
+  "buoy"
+]
+classifiers = [
+  "Development Status :: 3 - Alpha",
+  "Intended Audience :: Science/Research",
+  "Programming Language :: Python :: 3",
+  "Programming Language :: Python :: 3.11",
+  "Topic :: Scientific/Engineering :: Atmospheric Science"
+]
+dependencies = [
+  "matplotlib>=3.8",
+  "numpy>=1.26",
+  "PyYAML>=6.0"
+]
+
+[project.optional-dependencies]
+excel = ["xlrd>=2.0"]
+netcdf = ["xarray>=2024.1", "netCDF4>=1.6"]
+dev = ["pytest>=8.0"]
+
+[project.scripts]
+wavecal = "wavecal.cli:main"
+
+[tool.setuptools.packages.find]
+where = ["src"]
+
+[tool.pytest.ini_options]
+testpaths = ["tests"]
+pythonpath = ["src"]
+addopts = "-q"
