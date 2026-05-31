@@ -6,6 +6,7 @@ from pathlib import Path
 import imageio.v2 as imageio
 import matplotlib
 import numpy as np
+from PIL import Image, ImageDraw, ImageFont, ImageSequence
 
 matplotlib.use("Agg")
 import matplotlib.pyplot as plt
@@ -16,6 +17,8 @@ from wavecal.pipeline import analyze_config
 
 ROOT = Path(__file__).resolve().parents[1]
 OUT = ROOT / "docs" / "assets" / "wavecalkit_hero.gif"
+WORKFLOW_GIF = ROOT / "docs" / "assets" / "wavecalkit_workflow.gif"
+MPL_ANIMATOR_GIF = ROOT / "docs" / "assets" / "wavecalkit_mpl_animator.gif"
 CONFIG = ROOT / "examples" / "scilly_jason3.yml"
 
 INK = "#132c35"
@@ -46,8 +49,23 @@ class HeroData:
 def main() -> None:
     OUT.parent.mkdir(parents=True, exist_ok=True)
     data = _load_case()
-    frames = [_render_frame(index, data) for index in range(30)]
-    imageio.mimsave(OUT, frames, duration=0.09, loop=0)
+    overview_frames = [_render_overview_frame(index, data) for index in range(24)]
+    workflow_frames = _compose_segment_frames(
+        WORKFLOW_GIF,
+        stage=2,
+        title="Analyst dashboard",
+        subtitle="Map, correction fit, polar direction, and 3D distance-time-SWH views",
+        count=20,
+    )
+    sweep_frames = _compose_segment_frames(
+        MPL_ANIMATOR_GIF,
+        stage=3,
+        title="Optional variable sweep",
+        subtitle="A Matplotlib script animated with mpl-animator for fast visual experiments",
+        count=20,
+    )
+    frames = overview_frames + workflow_frames + sweep_frames
+    imageio.mimsave(OUT, frames, duration=0.08, loop=0)
     print(OUT)
 
 
@@ -81,8 +99,8 @@ def _load_case() -> HeroData:
     )
 
 
-def _render_frame(index: int, data: HeroData):
-    progress = _ease(index / 29)
+def _render_overview_frame(index: int, data: HeroData):
+    progress = _ease(index / 23)
     fig = plt.figure(figsize=(10.56, 5.94), dpi=100)
     fig.patch.set_facecolor(PAPER)
     ax = fig.add_axes([0, 0, 1, 1])
@@ -96,6 +114,7 @@ def _render_frame(index: int, data: HeroData):
     _draw_scatter(ax, progress, data)
     _draw_metrics(ax, progress, data)
     _draw_report(ax, progress)
+    _draw_stage_badge(ax, 1, "Workflow overview")
 
     fig.canvas.draw()
     frame = np.asarray(fig.canvas.buffer_rgba())[:, :, :3].copy()
@@ -261,6 +280,103 @@ def _panel(ax, x: float, y: float, w: float, h: float, title: str):
     ax.add_patch(Rectangle((x, y), w, h, facecolor="white", edgecolor="#bed0ca", lw=1.0))
     ax.add_patch(Rectangle((x, y + h - 4.0), w, 4.0, facecolor="#f2f7f5", edgecolor="none"))
     ax.text(x + 1.6, y + h - 2.55, title, fontsize=8.6, weight="bold", color=INK)
+
+
+def _draw_stage_badge(ax, stage: int, title: str):
+    ax.text(5.2, 4.0, f"{stage}/3  {title}", fontsize=7.7, weight="bold", color=INK)
+    for idx in range(3):
+        ax.add_patch(
+            Circle(
+                (15.0 + idx * 2.1, 4.25),
+                0.36,
+                facecolor=GREEN if idx + 1 <= stage else "#dce7e3",
+                edgecolor="none",
+            )
+        )
+
+
+def _compose_segment_frames(
+    source: Path,
+    *,
+    stage: int,
+    title: str,
+    subtitle: str,
+    count: int,
+) -> list[np.ndarray]:
+    if not source.exists():
+        raise FileNotFoundError(f"Missing source GIF for combined hero: {source}")
+    with Image.open(source) as image:
+        source_frames = [frame.convert("RGB") for frame in ImageSequence.Iterator(image)]
+    indices = np.linspace(0, len(source_frames) - 1, count).round().astype(int)
+    return [
+        np.asarray(_compose_segment_frame(source_frames[int(index)], stage, title, subtitle, pos, count))
+        for pos, index in enumerate(indices)
+    ]
+
+
+def _compose_segment_frame(
+    source_frame: Image.Image,
+    stage: int,
+    title: str,
+    subtitle: str,
+    frame_index: int,
+    frame_count: int,
+) -> Image.Image:
+    canvas = Image.new("RGB", (1056, 594), PAPER)
+    draw = ImageDraw.Draw(canvas)
+    font_title, font_subtitle, font_small, font_tiny = _fonts()
+
+    draw.text((50, 34), "WaveCalKit", fill=INK, font=font_title)
+    draw.text((50, 67), "One reproducible path from observations to evidence", fill=MUTED, font=font_subtitle)
+    draw.text((760, 38), f"{stage}/3  {title}", fill=INK, font=font_small)
+    draw.text((760, 62), subtitle, fill=MUTED, font=font_tiny)
+
+    for idx, label in enumerate(["overview", "dashboard", "sweep"]):
+        x = 760 + idx * 80
+        fill = GREEN if idx + 1 <= stage else "#dce7e3"
+        draw.rounded_rectangle((x, 88, x + 62, 104), radius=4, fill=fill)
+        draw.text((x + 31, 91), label, fill="white" if idx + 1 <= stage else MUTED, anchor="ma", font=font_tiny)
+
+    box = (44, 124, 1012, 523)
+    draw.rounded_rectangle(box, radius=8, fill="white", outline="#bed0ca", width=1)
+    inner_w = box[2] - box[0] - 28
+    inner_h = box[3] - box[1] - 28
+    frame = source_frame.copy()
+    frame.thumbnail((inner_w, inner_h), Image.Resampling.LANCZOS)
+    paste_x = box[0] + (box[2] - box[0] - frame.width) // 2
+    paste_y = box[1] + (box[3] - box[1] - frame.height) // 2
+    canvas.paste(frame, (paste_x, paste_y))
+
+    draw.text(
+        (50, 550),
+        "Outputs: collocations.csv  metrics.csv  figures  report.md  provenance.json",
+        fill=TEAL,
+        font=font_tiny,
+    )
+    draw.text(
+        (980, 550),
+        f"frame {frame_index + 1:02d}/{frame_count:02d}",
+        fill="#b7c4c0",
+        font=font_tiny,
+        anchor="ra",
+    )
+    return canvas
+
+
+def _fonts():
+    font_names = ["Arial.ttf", "Helvetica.ttf", "DejaVuSans.ttf"]
+    for name in font_names:
+        try:
+            return (
+                ImageFont.truetype(name, 25),
+                ImageFont.truetype(name, 13),
+                ImageFont.truetype(name, 11),
+                ImageFont.truetype(name, 9),
+            )
+        except OSError:
+            continue
+    default = ImageFont.load_default()
+    return default, default, default, default
 
 
 def _normalise_track(data: HeroData, x: float, y: float, w: float, h: float) -> list[tuple[float, float]]:

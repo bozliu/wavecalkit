@@ -34,15 +34,7 @@ See [docs/example_report.md](docs/example_report.md) for the generated report sh
 
 ## Visual Outputs
 
-The hero above is the clearest first-view summary: it shows ingest, QC, geospatial collocation, correction fit, metrics, and report outputs in one compact flow. The two GIFs below are supporting demos for the Python visualization commands.
-
-![WaveCalKit dashboard animation](docs/assets/wavecalkit_workflow.gif)
-
-`wavecal animate` renders the analyst dashboard with map, correction fit, polar direction, and 3D distance-time-SWH views.
-
-![WaveCalKit mpl-animator sweep](docs/assets/wavecalkit_mpl_animator.gif)
-
-`mpl-animator` renders a variable-sweep demo from the same Matplotlib script for lightweight GIF/MP4 experiments.
+The hero GIF combines the whole visual story in one asset: workflow overview, `wavecal animate` analyst dashboard, and optional `mpl-animator` variable sweep. The supporting GIFs are kept in `docs/assets/` for regeneration and tests, but the README uses one hero so the first screen stays focused.
 
 ## Quick Start
 

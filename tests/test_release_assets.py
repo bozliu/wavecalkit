@@ -26,12 +26,8 @@ def test_hero_gif_exists_and_is_animated():
             assert image.size[1] >= 500
 
 
-def test_readme_embeds_tracked_gifs():
+def test_readme_embeds_combined_hero_only():
     readme = Path("README.md").read_text(encoding="utf-8")
-    for asset in [
-        "docs/assets/wavecalkit_hero.gif",
-        "docs/assets/wavecalkit_workflow.gif",
-        "docs/assets/wavecalkit_mpl_animator.gif",
-    ]:
-        assert asset in readme
-        assert Path(asset).exists()
+    assert "docs/assets/wavecalkit_hero.gif" in readme
+    assert "docs/assets/wavecalkit_workflow.gif" not in readme
+    assert "docs/assets/wavecalkit_mpl_animator.gif" not in readme
