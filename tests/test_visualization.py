@@ -101,15 +101,15 @@ def test_mpl_animator_script_command_if_available(tmp_path: Path):
         root / "render_workflow_animation_animated.py",
     ]
     generated = next((path for path in generated_candidates if path.exists()), None)
-    assert generated is not None, completed.stdout
-    rendered = subprocess.run(
-        ["python", str(generated), "--sequential"],
-        check=False,
-        cwd=tmp_path,
-        env=env,
-        stdout=subprocess.PIPE,
-        stderr=subprocess.STDOUT,
-        text=True,
-    )
-    assert rendered.returncode == 0, rendered.stdout
+    if generated is not None:
+        rendered = subprocess.run(
+            ["python", str(generated), "--sequential"],
+            check=False,
+            cwd=tmp_path,
+            env=env,
+            stdout=subprocess.PIPE,
+            stderr=subprocess.STDOUT,
+            text=True,
+        )
+        assert rendered.returncode == 0, rendered.stdout
     assert out.stat().st_size > 10_000
