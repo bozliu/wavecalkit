@@ -18,14 +18,20 @@ windows:
   - 75-100
 collocation:
   time_window: exact
+  aggregation: nearest
 quality:
   min_swh_numval: 17
   min_swh_m: 0
   max_swh_m: 15
+  reject_buoy_qc_flags:
+    - bad
+    - suspect
+  max_buoy_swh_jump_m: 4
+  buoy_jump_window_hours: 2
 fit:
   model: linear
 report:
   title: Scilly Jason-3 Significant Wave Height Validation
 data_sources:
-  - Sanitized sample derived from the Exeter thesis workflow structure, not raw commercial validation data.
+  - Sanitized sample for reproducible command-line verification, not raw commercial validation data.
   - Modern target adapters are documented for Copernicus Marine L3 SWH, Cefas WaveNet, and NOAA NDBC.

@@ -7,6 +7,7 @@ from collections.abc import Iterable
 import numpy as np
 
 from wavecal.models import CollocationPair, Metrics
+from wavecal.wave import deep_water_wave_power_kw_per_m
 
 
 def linear_fit(buoy_swh: np.ndarray, altimeter_swh: np.ndarray) -> tuple[float, float]:
@@ -59,6 +60,14 @@ def compute_metrics_for_pairs(
         scatter_index = rmse / float(np.mean(buoy)) if n and float(np.mean(buoy)) != 0.0 else 0.0
         slope, intercept = linear_fit(buoy, alt)
         slope_ci95, intercept_ci95 = _confidence_intervals(buoy, alt, slope, intercept)
+        wave_power_values = [
+            value
+            for value in (
+                deep_water_wave_power_kw_per_m(pair.buoy.swh_m, pair.buoy.period_s)
+                for pair in window_pairs
+            )
+            if value is not None
+        ]
         results.append(
             Metrics(
                 window_name=window_name,
@@ -73,6 +82,9 @@ def compute_metrics_for_pairs(
                 slope_ci95=slope_ci95,
                 intercept_ci95=intercept_ci95,
                 model=model,
+                mean_buoy_wave_power_kw_per_m=(
+                    float(np.mean(wave_power_values)) if wave_power_values else None
+                ),
             )
         )
     return results

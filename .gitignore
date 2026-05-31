@@ -14,6 +14,13 @@ venv/
 env/
 outputs/
 
+# Local durable task memory. Keep these files in the working tree for agent
+# continuity, but never publish them as part of the public package.
+Prompt.md
+Plan.md
+Implement.md
+Documentation.md
+
 # Office/editor lock files
 ~$*
 **/~$*
@@ -32,4 +39,3 @@ outputs/
 *.kml
 *.kmz
 *ddl/
-è½¬åï¼è½æºæ¹é¢ æ³¢æµªåæï¼æ©å  è±å½æ©ä¸8æ30å· æ©ä¸9ç¹ddl/

@@ -33,9 +33,9 @@ dependencies = [
 ]
 
 [project.optional-dependencies]
-excel = ["xlrd>=2.0"]
+excel = ["pandas>=2.2", "xlrd>=2.0"]
 netcdf = ["xarray>=2024.1", "netCDF4>=1.6"]
-dev = ["pytest>=8.0"]
+dev = ["imageio>=2.0", "Pillow>=10.0", "pytest>=8.0"]
 
 [project.scripts]
 wavecal = "wavecal.cli:main"

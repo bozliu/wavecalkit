@@ -52,20 +52,28 @@ def run_pipeline(config_path: str | Path, out_dir: str | Path) -> dict[str, Path
         min_swh_m=qc_cfg.get("min_swh_m"),
         max_swh_m=qc_cfg.get("max_swh_m"),
         allowed_passes=set(qc_cfg.get("allowed_passes", [])) or None,
+        reject_quality_flags=set(qc_cfg.get("reject_altimeter_quality_flags", [])) or None,
+        reject_rain_flags=set(qc_cfg.get("reject_rain_flags", [])) or None,
+        reject_ice_flags=set(qc_cfg.get("reject_ice_flags", [])) or None,
+        reject_land_flags=set(qc_cfg.get("reject_land_flags", [])) or None,
     )
     buoy = filter_buoy(
         buoy,
         min_swh_m=qc_cfg.get("min_swh_m"),
         max_swh_m=qc_cfg.get("max_swh_m"),
         reject_qc_flags=set(qc_cfg.get("reject_buoy_qc_flags", [])) or None,
+        max_swh_jump_m=qc_cfg.get("max_buoy_swh_jump_m"),
+        jump_window_hours=float(qc_cfg.get("buoy_jump_window_hours", 2.0)),
     )
+    collocation_cfg = config.get("collocation", {})
     pairs = collocate(
         altimeter,
         buoy,
         station_lat=float(station["lat"]),
         station_lon=float(station["lon"]),
         windows=windows,
-        time_window=config.get("collocation", {}).get("time_window", "exact"),
+        time_window=collocation_cfg.get("time_window", "exact"),
+        aggregation=collocation_cfg.get("aggregation", "nearest"),
     )
     metrics = compute_metrics_for_pairs(pairs, model=config.get("fit", {}).get("model", "linear"))
 
@@ -90,6 +98,7 @@ def run_pipeline(config_path: str | Path, out_dir: str | Path) -> dict[str, Path
         notes=[
             "Public sample data is sanitized and not a commercial validation dataset.",
             "Distance windows use haversine distance.",
+            f"Collocation aggregation mode: {collocation_cfg.get('aggregation', 'nearest')}.",
         ],
     )
     return {

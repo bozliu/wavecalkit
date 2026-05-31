@@ -17,6 +17,10 @@ class AltimeterRecord:
     mission: str = "unknown"
     source_file: str = ""
     window_name: str | None = None
+    quality_flag: str | None = None
+    rain_flag: str | None = None
+    ice_flag: str | None = None
+    land_flag: str | None = None
 
 
 @dataclass(frozen=True)
@@ -48,6 +52,8 @@ class CollocationPair:
     distance_km: float
     delta_time_minutes: float
     window_name: str
+    aggregation: str = "nearest"
+    matched_altimeter_count: int = 1
 
 
 @dataclass(frozen=True)
@@ -64,3 +70,4 @@ class Metrics:
     slope_ci95: float
     intercept_ci95: float
     model: str = "linear"
+    mean_buoy_wave_power_kw_per_m: float | None = None

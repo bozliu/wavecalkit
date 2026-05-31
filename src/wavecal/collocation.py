@@ -1,6 +1,8 @@
 from __future__ import annotations
 
 from collections.abc import Iterable
+from dataclasses import replace
+from statistics import mean, median
 
 from wavecal.geo import haversine_km
 from wavecal.models import AltimeterRecord, BuoyRecord, CollocationPair, WindowSpec
@@ -33,7 +35,10 @@ def collocate(
     station_lon: float,
     windows: list[WindowSpec],
     time_window: str = "exact",
+    aggregation: str = "nearest",
 ) -> list[CollocationPair]:
+    if aggregation not in {"nearest", "mean", "median"}:
+        raise ValueError("aggregation must be one of: nearest, mean, median")
     tolerance_minutes = parse_time_window(time_window)
     buoy_records = sorted(list(buoys), key=lambda item: item.time)
     pairs: list[CollocationPair] = []
@@ -72,4 +77,66 @@ def collocate(
             )
         )
 
-    return pairs
+    return aggregate_collocations(pairs, aggregation)
+
+
+def aggregate_collocations(
+    pairs: Iterable[CollocationPair],
+    aggregation: str = "nearest",
+) -> list[CollocationPair]:
+    if aggregation not in {"nearest", "mean", "median"}:
+        raise ValueError("aggregation must be one of: nearest, mean, median")
+
+    grouped: dict[tuple[str, object, str], list[CollocationPair]] = {}
+    for pair in pairs:
+        key = (pair.buoy.station_id, pair.buoy.time, pair.window_name)
+        grouped.setdefault(key, []).append(pair)
+
+    aggregated: list[CollocationPair] = []
+    for key in sorted(grouped, key=lambda item: (str(item[2]), item[1], item[0])):
+        group = grouped[key]
+        if len(group) == 1:
+            aggregated.append(
+                replace(group[0], aggregation=aggregation, matched_altimeter_count=1)
+            )
+            continue
+
+        nearest = min(group, key=lambda item: (item.delta_time_minutes, max(item.distance_km, 0.0)))
+        if aggregation == "nearest":
+            aggregated.append(
+                replace(nearest, aggregation="nearest", matched_altimeter_count=len(group))
+            )
+            continue
+
+        reducer = mean if aggregation == "mean" else median
+        altimeter = replace(
+            nearest.altimeter,
+            swh_m=float(reducer([pair.altimeter.swh_m for pair in group])),
+            lat=_reduce_optional([pair.altimeter.lat for pair in group], reducer),
+            lon=_reduce_optional([pair.altimeter.lon for pair in group], reducer),
+            swh_rms_m=_reduce_optional([pair.altimeter.swh_rms_m for pair in group], reducer),
+            swh_numval=_reduce_optional_int([pair.altimeter.swh_numval for pair in group], reducer),
+            source_file=f"aggregated:{len(group)}",
+        )
+        aggregated.append(
+            replace(
+                nearest,
+                altimeter=altimeter,
+                distance_km=float(reducer([pair.distance_km for pair in group])),
+                delta_time_minutes=float(reducer([pair.delta_time_minutes for pair in group])),
+                aggregation=aggregation,
+                matched_altimeter_count=len(group),
+            )
+        )
+
+    return aggregated
+
+
+def _reduce_optional(values: list[float | None], reducer) -> float | None:
+    present = [value for value in values if value is not None]
+    return None if not present else float(reducer(present))
+
+
+def _reduce_optional_int(values: list[int | None], reducer) -> int | None:
+    present = [value for value in values if value is not None]
+    return None if not present else int(round(float(reducer(present))))

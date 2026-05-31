@@ -14,4 +14,6 @@ jobs:
           python-version: "3.11"
       - run: python -m pip install -e ".[dev]"
       - run: python -m pytest
+      - run: python -m wavecal.cli audit-release --mode tracked
+      - run: python -m wavecal.cli audit-release --mode archive
       - run: python -m wavecal.cli run --config examples/scilly_jason3.yml --out outputs/scilly

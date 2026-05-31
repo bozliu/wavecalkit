@@ -20,6 +20,7 @@ from wavecal.collocation import collocate, parse_window_specs
 from wavecal.metrics import compute_metrics_for_pairs
 from wavecal.models import AltimeterRecord, BuoyRecord, CollocationPair
 from wavecal.pipeline import run_pipeline
+from wavecal.release_audit import audit_release, format_audit_result
 from wavecal.reports import render_markdown_report
 from wavecal.timeutil import parse_time
 
@@ -52,6 +53,7 @@ def build_parser() -> argparse.ArgumentParser:
     coloc.add_argument("--station-lon", type=float, required=True)
     coloc.add_argument("--time-window", default="exact")
     coloc.add_argument("--space-windows", default="0-25,25-50,50-75,75-100")
+    coloc.add_argument("--aggregation", choices=["nearest", "mean", "median"], default="nearest")
     coloc.add_argument("--out", required=True)
 
     fit = subparsers.add_parser("fit", help="Fit correction metrics from collocations.")
@@ -63,6 +65,10 @@ def build_parser() -> argparse.ArgumentParser:
     report.add_argument("--collocations", required=True)
     report.add_argument("--out", required=True)
     report.add_argument("--format", choices=["md"], default="md")
+
+    audit = subparsers.add_parser("audit-release", help="Check tracked or archived files before public release.")
+    audit.add_argument("--root", default=".")
+    audit.add_argument("--mode", choices=["tracked", "archive"], default="tracked")
 
     return parser
 
@@ -114,6 +120,7 @@ def main(argv: list[str] | None = None) -> int:
             station_lon=args.station_lon,
             windows=windows,
             time_window=args.time_window,
+            aggregation=args.aggregation,
         )
         write_collocations_csv(pairs, args.out)
         print(f"wrote {len(pairs)} collocations to {args.out}")
@@ -132,6 +139,11 @@ def main(argv: list[str] | None = None) -> int:
         render_markdown_report(metrics=metrics, pairs=pairs, figure_paths=[], out_path=args.out)
         print(f"wrote report to {args.out}")
         return 0
+
+    if args.command == "audit-release":
+        result = audit_release(args.root, mode=args.mode)
+        print(format_audit_result(result))
+        return 0 if result.passed else 1
 
     parser.error(f"unsupported command {args.command}")
     return 2
@@ -155,6 +167,7 @@ def _pairs_from_rows(rows: list[dict[str, str]]) -> list[CollocationPair]:
             lat=None,
             lon=None,
             swh_m=float(row["buoy_swh_m"]),
+            period_s=_optional_float(row.get("buoy_period_s")),
         )
         pairs.append(
             CollocationPair(
@@ -163,6 +176,8 @@ def _pairs_from_rows(rows: list[dict[str, str]]) -> list[CollocationPair]:
                 distance_km=float(row["distance_km"]),
                 delta_time_minutes=float(row["delta_time_minutes"]),
                 window_name=row["window_name"],
+                aggregation=row.get("aggregation") or "nearest",
+                matched_altimeter_count=int(row.get("matched_altimeter_count") or 1),
             )
         )
     return pairs
@@ -187,9 +202,18 @@ def _metrics_from_rows(rows: list[dict[str, str]]):
                 slope_ci95=float(row["slope_ci95"]),
                 intercept_ci95=float(row["intercept_ci95"]),
                 model=row.get("model") or "linear",
+                mean_buoy_wave_power_kw_per_m=_optional_float(
+                    row.get("mean_buoy_wave_power_kw_per_m")
+                ),
             )
         )
     return metrics
+
+
+def _optional_float(value: str | None) -> float | None:
+    if value is None or value == "":
+        return None
+    return float(value)
 
 
 if __name__ == "__main__":

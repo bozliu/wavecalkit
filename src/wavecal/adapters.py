@@ -7,6 +7,7 @@ from typing import Iterable
 
 from wavecal.models import AltimeterRecord, BuoyRecord, CollocationPair, Metrics
 from wavecal.timeutil import format_time, parse_time
+from wavecal.wave import deep_water_wave_power_kw_per_m
 
 
 def _float_or_none(value: object) -> float | None:
@@ -19,6 +20,11 @@ def _float_or_none(value: object) -> float | None:
 def _int_or_none(value: object) -> int | None:
     parsed = _float_or_none(value)
     return None if parsed is None else int(parsed)
+
+
+def _text_or_none(value: object) -> str | None:
+    text = "" if value is None else str(value).strip()
+    return text or None
 
 
 def read_altimeter_csv(path: str | Path) -> list[AltimeterRecord]:
@@ -38,6 +44,10 @@ def read_altimeter_csv(path: str | Path) -> list[AltimeterRecord]:
                     mission=row.get("mission") or "unknown",
                     source_file=row.get("source_file") or str(path),
                     window_name=row.get("window_name") or None,
+                    quality_flag=_text_or_none(row.get("quality_flag")),
+                    rain_flag=_text_or_none(row.get("rain_flag")),
+                    ice_flag=_text_or_none(row.get("ice_flag")),
+                    land_flag=_text_or_none(row.get("land_flag")),
                 )
             )
     return records
@@ -96,6 +106,10 @@ def read_altimeter_netcdf(path: str | Path, *, mission: str = "unknown") -> list
                 cycle_number=cycle_number,
                 mission=mission,
                 source_file=str(source),
+                quality_flag=_dataset_optional_text(dataset, "quality_flag", index),
+                rain_flag=_dataset_optional_text(dataset, "rain_flag", index),
+                ice_flag=_dataset_optional_text(dataset, "ice_flag", index),
+                land_flag=_dataset_optional_text(dataset, "land_flag", index),
             )
             for index in range(len(swh))
         ]
@@ -176,6 +190,17 @@ def _dataset_value(dataset, name: str) -> int | None:
     return None
 
 
+def _dataset_optional_text(dataset, name: str, index: int) -> str | None:
+    if name not in dataset:
+        return None
+    values = dataset[name].values
+    try:
+        value = values[index]
+    except TypeError:
+        value = values
+    return _text_or_none(value)
+
+
 def write_altimeter_csv(records: Iterable[AltimeterRecord], path: str | Path) -> None:
     path = Path(path)
     path.parent.mkdir(parents=True, exist_ok=True)
@@ -191,6 +216,10 @@ def write_altimeter_csv(records: Iterable[AltimeterRecord], path: str | Path) ->
         "mission",
         "source_file",
         "window_name",
+        "quality_flag",
+        "rain_flag",
+        "ice_flag",
+        "land_flag",
     ]
     with path.open("w", newline="", encoding="utf-8") as handle:
         writer = csv.DictWriter(handle, fieldnames=fields)
@@ -209,6 +238,10 @@ def write_altimeter_csv(records: Iterable[AltimeterRecord], path: str | Path) ->
                     "mission": record.mission,
                     "source_file": record.source_file,
                     "window_name": record.window_name or "",
+                    "quality_flag": record.quality_flag or "",
+                    "rain_flag": record.rain_flag or "",
+                    "ice_flag": record.ice_flag or "",
+                    "land_flag": record.land_flag or "",
                 }
             )
 
@@ -249,6 +282,10 @@ def write_collocations_csv(pairs: Iterable[CollocationPair], path: str | Path) -
         "mission",
         "station_id",
         "source_file",
+        "aggregation",
+        "matched_altimeter_count",
+        "buoy_period_s",
+        "buoy_wave_power_kw_per_m",
     ]
     with path.open("w", newline="", encoding="utf-8") as handle:
         writer = csv.DictWriter(handle, fieldnames=fields)
@@ -266,8 +303,18 @@ def write_collocations_csv(pairs: Iterable[CollocationPair], path: str | Path) -
                     "mission": pair.altimeter.mission,
                     "station_id": pair.buoy.station_id,
                     "source_file": pair.altimeter.source_file,
+                    "aggregation": pair.aggregation,
+                    "matched_altimeter_count": pair.matched_altimeter_count,
+                    "buoy_period_s": _format_optional_float(pair.buoy.period_s),
+                    "buoy_wave_power_kw_per_m": _format_optional_float(
+                        deep_water_wave_power_kw_per_m(pair.buoy.swh_m, pair.buoy.period_s)
+                    ),
                 }
             )
+
+
+def _format_optional_float(value: float | None) -> str:
+    return "" if value is None else f"{value:.6f}"
 
 
 def read_collocations_csv(path: str | Path) -> list[dict[str, str]]:

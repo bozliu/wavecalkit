@@ -19,7 +19,7 @@ def render_markdown_report(
     out_path.parent.mkdir(parents=True, exist_ok=True)
     source_lines = "\n".join(f"- {source}" for source in (data_sources or []))
     metric_rows = "\n".join(
-        "| {name} | {n} | {r:.3f} | {bias:.3f} | {mae:.3f} | {rmse:.3f} | {si:.3f} | {slope:.3f} +/- {slope_ci:.3f} | {intercept:.3f} +/- {intercept_ci:.3f} |".format(
+        "| {name} | {n} | {r:.3f} | {bias:.3f} | {mae:.3f} | {rmse:.3f} | {si:.3f} | {slope:.3f} +/- {slope_ci:.3f} | {intercept:.3f} +/- {intercept_ci:.3f} | {power} |".format(
             name=item.window_name,
             n=item.n,
             r=item.r,
@@ -31,10 +31,16 @@ def render_markdown_report(
             intercept=item.intercept,
             slope_ci=item.slope_ci95,
             intercept_ci=item.intercept_ci95,
+            power=(
+                ""
+                if item.mean_buoy_wave_power_kw_per_m is None
+                else f"{item.mean_buoy_wave_power_kw_per_m:.2f}"
+            ),
         )
         for item in metrics
     )
     figure_lines = "\n".join(f"- `{path}`" for path in figure_paths)
+    aggregation_counts = sorted({pair.aggregation for pair in pairs})
     text = f"""# {title}
 
 ## Summary
@@ -49,20 +55,25 @@ This report validates satellite-altimeter significant wave height against buoy o
 
 The bundled sample is deliberately tiny and sanitized for reproducibility tests. Perfect-looking values such as `R = 1.000` must not be read as field-grade accuracy.
 
-| Window | N | R | Signed Bias m | MAE m | RMSE m | Scatter Index | Slope +/- 95% CI | Intercept +/- 95% CI |
-|---|---:|---:|---:|---:|---:|---:|---:|---:|
+| Window | N | R | Signed Bias m | MAE m | RMSE m | Scatter Index | Slope +/- 95% CI | Intercept +/- 95% CI | Mean Wave Power kW/m |
+|---|---:|---:|---:|---:|---:|---:|---:|---:|---:|
 {metric_rows}
 
 ## Figures
 
 {figure_lines}
 
+## Wave Resource Screening
+
+When buoy period is present, WaveCalKit estimates mean deep-water wave power per metre using significant wave height and period. This is a screening indicator for analyst review, not a bankable yield assessment.
+
 ## Method Notes
 
 - Collocation pairs: {len(pairs)}
+- Collocation aggregation: {", ".join(aggregation_counts) if aggregation_counts else "none"}
 - Regression form: `altimeter_swh = slope * buoy_swh + intercept`
-- `signed_bias_m` is the mean of `altimeter - buoy`; `mae_m` preserves the legacy thesis-style absolute bias.
-- Distance windows are assigned with haversine distance, avoiding the legacy MATLAB latitude-index shortcut.
+- `signed_bias_m` is the mean of `altimeter - buoy`; `mae_m` is mean absolute error.
+- Distance windows are assigned with haversine distance, replacing manual track-window binning and latitude-index shortcuts.
 
 ## Claim Boundary
 

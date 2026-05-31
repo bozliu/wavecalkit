@@ -1,6 +1,6 @@
 # Data Sources
 
-WaveCalKit v1 ships with sanitized sample CSV data so tests and demos are reproducible without credentials or proprietary archives.
+WaveCalKit v1 ships with sanitized sample CSV data so tests and demos are reproducible without credentials, restricted downloads, or local archive material.
 
 ## Modern Adapter Targets
 
@@ -13,6 +13,6 @@ WaveCalKit v1 ships with sanitized sample CSV data so tests and demos are reprod
 
 ## Publication Rule
 
-Do not publish raw thesis documents, WPS/Excel files, NetCDF downloads, or third-party PDFs until licensing and privacy are reviewed. Public examples should use sanitized fixtures or documented download instructions.
+Do not publish raw Office documents, spreadsheets, NetCDF downloads, MATLAB files, KML/KMZ files, or third-party PDFs until licensing and privacy are reviewed. Public examples should use sanitized fixtures or documented download instructions.
 
-AVISO+/CNES, Copernicus Marine, Cefas/WaveNet, NOAA, thesis files, and any downloaded NetCDF/Excel/PDF assets remain subject to their own licenses, terms, and attribution requirements. The MIT license in this repository covers only WaveCalKit code and intentionally redistributed sanitized fixtures.
+AVISO+/CNES, Copernicus Marine, Cefas WaveNet, NOAA, and any downloaded NetCDF/Excel/PDF assets remain subject to their own licenses, terms, and attribution requirements. The MIT license in this repository covers only WaveCalKit code and intentionally redistributed sanitized fixtures.
