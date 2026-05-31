@@ -33,7 +33,7 @@ fig = plt.figure(figsize=(10.4, 6.2), dpi=110)
 ax_map = fig.add_subplot(2, 2, 1)
 ax_scatter = fig.add_subplot(2, 2, 2)
 ax_polar = fig.add_subplot(2, 2, 3, projection="polar")
-ax_3d = fig.add_subplot(2, 2, 4, projection="3d")
+ax_depth = fig.add_subplot(2, 2, 4)
 fig.suptitle("WaveCalKit Python-native validation workflow", fontsize=14, weight="bold")
 
 station_lon = float(station["lon"])
@@ -92,11 +92,23 @@ ax_polar.set_theta_direction(-1)
 delta = [pair.delta_time_minutes for pair in visible_pairs]
 distance = [max(pair.distance_km, 0.0) for pair in visible_pairs]
 swh = [pair.altimeter.swh_m for pair in visible_pairs]
-ax_3d.scatter(delta, distance, swh, s=18, color="#176f53", alpha=0.8)
-ax_3d.set_title("3D distance-time-SWH")
-ax_3d.set_xlabel("delta min")
-ax_3d.set_ylabel("distance km")
-ax_3d.set_zlabel("SWH m")
+if delta:
+    sizes = [28 + value * 18 for value in swh]
+    ax_depth.scatter(delta, distance, c=swh, s=sizes, cmap="viridis", alpha=0.82)
+ax_depth.set_title("distance-time-SWH")
+ax_depth.set_xlabel("delta min")
+ax_depth.set_ylabel("distance km")
+ax_depth.grid(True, alpha=0.22)
+ax_depth.text(
+    0.98,
+    0.04,
+    "color + size = SWH",
+    transform=ax_depth.transAxes,
+    ha="right",
+    va="bottom",
+    fontsize=7,
+    color="#49646b",
+)
 
 fig.text(0.985, 0.015, f"frame phase {phase:.2f}", ha="right", va="bottom", fontsize=7)
 fig.tight_layout(rect=(0, 0.03, 1, 0.94))

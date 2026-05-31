@@ -32,6 +32,18 @@ Example output bundle:
 
 See [docs/example_report.md](docs/example_report.md) for the generated report shape.
 
+## Visual Outputs
+
+The hero above is the clearest first-view summary: it shows ingest, QC, geospatial collocation, correction fit, metrics, and report outputs in one compact flow. The two GIFs below are supporting demos for the Python visualization commands.
+
+![WaveCalKit dashboard animation](docs/assets/wavecalkit_workflow.gif)
+
+`wavecal animate` renders the analyst dashboard with map, correction fit, polar direction, and 3D distance-time-SWH views.
+
+![WaveCalKit mpl-animator sweep](docs/assets/wavecalkit_mpl_animator.gif)
+
+`mpl-animator` renders a variable-sweep demo from the same Matplotlib script for lightweight GIF/MP4 experiments.
+
 ## Quick Start
 
 Use the `dl` conda environment on this Mac, or install the package in any Python 3.11+ environment:
@@ -71,7 +83,7 @@ mpl-animator scripts/render_workflow_animation.py --var frame --range "0,2*pi" -
 python render_workflow_animation_animated.py
 ```
 
-The installed `mpl-animator` 0.1.x CLI generates an animated Python script first; running that emitted script writes the GIF or MP4. The animation examples use Matplotlib for 2D scatter, polar direction plots, subplots, and 3D distance-time-SWH views. Manim is documented as a future option for educational or marketing videos, not a v1 runtime dependency. See [docs/python_reimplementation.md](docs/python_reimplementation.md).
+The installed `mpl-animator` 0.1.x CLI generates an animated Python script first; running that emitted script writes the GIF or MP4. `wavecal animate` uses Matplotlib for 2D scatter, polar direction plots, subplots, and a 3D distance-time-SWH view; the optional `mpl-animator` demo keeps the sweep dashboard 2D-only for stable generated-script rendering. Manim is documented as a future option for educational or marketing videos, not a v1 runtime dependency. See [docs/python_reimplementation.md](docs/python_reimplementation.md).
 
 ## Data Adapters
 

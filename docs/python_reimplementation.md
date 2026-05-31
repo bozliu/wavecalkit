@@ -18,8 +18,9 @@ WaveCalKit replaces the historical desktop plotting workflow with Python-native 
 
 - 2D scatter correction plot: buoy SWH versus altimeter SWH with `y=x` and fitted correction lines.
 - Polar plot: buoy wave direction when `direction_deg` exists.
-- Subplot dashboard: map, correction fit, polar direction, and 3D distance-time-SWH view.
+- Subplot dashboard: `wavecal animate` renders map, correction fit, polar direction, and 3D distance-time-SWH views.
 - GIF/MP4 output: default `wavecal animate` uses Matplotlib writers; optional `mpl-animator` is available for variable sweeps and writes a generated script that you run to create the media.
+- Optional `mpl-animator` demo: keeps the sweep dashboard 2D-only so the generated script preserves all subplots consistently.
 
 ## Dependency Policy
 
